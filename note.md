@@ -1,4 +1,11 @@
 ## install
+`conda install -n base mamba -c conda-forge -y`安装mamba失败，直接安装miniforge3，不用安装anaconda
+```
+wget "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+bash Miniforge3-$(uname)-$(uname -m).sh
+source ~/.bashrc
+```
+
 `mamba create -n easyvolcap "python>=3.10" -y`只能安装3.10，否则mediapipe等很多包安装失败，改为`mamba create -n easyvolcap "python==3.10" -y`，不能直接安装3.10环境可能是conda的channels有问题
 
 `pip install git+https://github.com/facebookresearch/pytorch3d`会使键鼠失灵电脑卡死，编译源码安装也会卡死：
