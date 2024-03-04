@@ -79,3 +79,4 @@ diff*.html
 
 tiny-cuda-nn
 pytorch3d
+*.exr

@@ -10,6 +10,7 @@
 
 ***News***:
 
+- 24.02.27 [***4K4D***](https://zju3dv.github.io/4k4d) has been accepted to CVPR 2024.
 - 23.12.13 ***EasyVolcap*** will be presented at SIGGRAPH Asia 2023, Sydney.
 - 23.10.17 [***4K4D***](https://zju3dv.github.io/4k4d), a real-time 4D view synthesis algorithm developed using ***EasyVolcap***, has been made public.
 
@@ -19,7 +20,7 @@ https://github.com/zju3dv/EasyVolcap/assets/43734697/14fdfb46-5277-4963-ba75-067
 
 ## Installation
 
-Copy and paste version of the installation process listed below. For a more thorough explanation, read on.
+Copy-and-paste version of the installation process listed below. For a more thorough explanation, read on.
 ```shell
 # Prepare conda environment
 conda install -n base mamba -y -c conda-forge
@@ -51,6 +52,56 @@ Note: `pip` dependencies can sometimes fail to install & build. However, not all
 
 ## Usage
 
+### Expanding Upon ***EasyVolcap***
+
+Most of the time when we want to build a new set of algorithms on top of the framework, we only have to worry about the actual network itself.
+Before writing your new volumetric video algorithm, we need a basic understanding of the network's input and output:
+
+**We use Python dictionaries for passing in and out network input and output.**
+
+1. The `batch` variable stores the network input you sampled from the dataset (e.g. camera parameters).
+2. The `output` key of the `batch` variable should contain the network output. For each network module's output definition, please refer to the [design documents](docs/design/main.md) of them (`camera`, `sampler`, `network`, `renderer`) or just see the definitions in [`volumetric_video_model.py`](easyvolcap/models/volumetric_video_model.py) (the `render_rays` function).
+
+<!-- There are generally two ways of developing a new algorithm: -->
+**We support purely customized network construction & usage and also a unified NeRF-like pipeline.**
+
+1. If your new network model's structure is similar to NeRF-based ones (i.e. with the separation of `sampler`, `network` and `renderer`), you can simply swap out parts of the [`volumetric_video_network.py`](easyvolcap/models/networks/volumetric_video_network.py) by writing a new config to swap the `type` parameter of the `***_cfg` dictionaries.
+2. If you'd like to build a completely new network model: to save you some hassle, we grant the `sampler` classes the ability to directly output the core network output (`rgb_map` stored in `batch.output`). Define your rendering function and network structure however you like and reuse other parts of the codebase. An example: [`gaussiant_sampler.py`](easyvolcap/models/samplers/gaussiant_sampler.py).
+
+**A miminal custom moduling using all other ***EasyVolcap*** components should look something like this:**
+
+```python
+from easyvolcap.engine import SAMPLERS
+from easyvolcap.utils.net_utils import VolumetricVideoModule
+from easyvolcap.utils.console_utils import *
+
+@SAMPLERS.register_module() # make the custom module callable by class name
+class CustomVolumetricVideoModule(VolumetricVideoModule):
+    def __init__(self,
+                 network, # ignore noop_network
+                 ... # configurable parameters
+                 ):
+        # Initialize custom network parameters
+        ...
+    
+    def forward(self, batch: dotdict):
+        # Perform network forwarding
+        ...
+
+        # Store output for further processing
+        batch.output.rgb_map = ... # store rendered image for loss (B, N, 3)
+```
+
+In the respective config, selecte this module with:
+
+```yaml
+model_cfg:
+    sampler_cfg:
+        type: CustomVolumetricVideoModule
+```
+
+### Importing ***EasyVolcap*** In Other Places
+
 ***EasyVolcap*** now supports direct import from other locations & codebases.
 After installing, you can not only directly use utility modules and functions from `easyvolcap.utils`, but also import and build upon our core modules and classes.
 
@@ -67,13 +118,12 @@ from easyvolcap.runners.volumetric_video_viewer import VolumetricVideoViewer
 class CustomViewer(VolumetricVideoViewer):
     ...
 ```
-The import will work when actually running the code, but it might fail since some of the autocompletion module [is not fully compatible with the newest editable install](https://code.visualstudio.com/docs/python/editing#_importresolvefailure).
+The import will work when actually running the code, but it might fail since some of the autocompletion modules [is not fully compatible with the newest editable install](https://code.visualstudio.com/docs/python/editing#_importresolvefailure).
 
 If you see warnings when importing ***EasyVolcap*** in your editor like VSCode, you might want to add the path of your ***EasyVolcap*** codebase to the `python.autoComplete.extraPaths` and `python.analysis.extraPaths` like this:
 
 ```json
 {
-  ...
     "python.autoComplete.extraPaths": ["/home/zju3dv/code/easyvolcap"],
     "python.analysis.extraPaths": ["/home/zju3dv/code/easyvolcap"]
 }
@@ -96,7 +146,7 @@ After cloning and forking, add [https://github.com/zju3dv/EasyVolcap](https://gi
 Our recent project [4K4D](https://github.com/zju3dv/4K4D) is developed in this fashion.
 
 ```shell
-# Prepare name and GitHub repo of your new project
+# Prepare the name and GitHub repo of your new project
 project=4K4D
 repo=https://github.com/zju3dv/${project}
 
@@ -106,7 +156,7 @@ git clone https://github.com/zju3dv/EasyVolcap ${project}
 # Setup the remote of your new project
 git set-url origin ${repo}
 
-# Add EasyVolcap as upstream
+# Add EasyVolcap as an upstream
 git remote add upstream https://github.com/zju3dv/EasyVolcap
 
 # If EasyVolcap updates, fetch the updates and maybe merge with it
