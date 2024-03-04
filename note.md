@@ -146,3 +146,17 @@ pytorch降版本要重新编译simple-knn，之后diff_gauss(diff-gaussian-raste
 pip uninstall simple-knn
 pip install git+https://gitlab.inria.fr/bkerbl/simple-knn
 ```
+
+`evc -c configs/exps/gaussiant/gaussiant_${expname}.yaml`训练3dgs模型时报错
+```
+RuntimeError: The expanded size of the tensor (262144) must match the existing size (299807) at non-singleton dimension 0.  Target sizes: [262144, 3].  Tensor sizes: [299807, 3]
+*** The expanded size of the tensor (262144) must match the existing size (299807) at non-singleton dimension 0.  Target
+sizes: [262144, 3].  Tensor sizes: [299807, 3]
+> /mnt/tmpfs/dingweili/EasyVolcap/easyvolcap/utils/gaussian_utils.py(365)create_from_pcd()
+    363         if colors is not None:
+    364             SH = rgb2sh0(colors)
+--> 365             features[:, :3, 0] = SH
+    366         features[:, 3: 1:] = 0
+    367 
+```
+把configs/exps/gaussiant/gaussiant_actor1_4_subseq.yaml的model_cfg.sampler_cfg.n_points从262144改为299807
